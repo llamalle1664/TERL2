@@ -1,0 +1,152 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="fr">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>speech_data &#8212; Documentation SpeechRecognition </title>
+    <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/translations.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Recherche" href="../search.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Code source de speech_data</h1><div class="highlight"><pre>
+<span></span><span class="c1"># coding=utf-8</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">wave</span>
+
+<span class="c1">#import numpy</span>
+<span class="c1">#import numpy as np</span>
+<span class="c1">#import skimage.io  # scikit-image</span>
+
+<span class="c1">#from random import shuffle</span>
+
+<span class="n">SOURCE_URL</span> <span class="o">=</span> <span class="s1">&#39;http://pannous.net/files/&#39;</span> <span class="c1">#spoken_numbers.tar&#39;</span>
+<span class="n">DATA_DIR</span> <span class="o">=</span> <span class="s1">&#39;../data/&#39;</span>
+<span class="n">pcm_path</span> <span class="o">=</span> <span class="s2">&quot;../data/spoken_numbers_pcm/&quot;</span> <span class="c1"># 8 bit</span>
+<span class="n">wav_path</span> <span class="o">=</span> <span class="s2">&quot;../data/spoken_numbers_wav/&quot;</span> <span class="c1"># 16 bit s16le</span>
+<span class="n">path</span> <span class="o">=</span> <span class="n">pcm_path</span>
+<span class="n">CHUNK</span> <span class="o">=</span> <span class="mi">4096</span>
+<span class="n">test_fraction</span><span class="o">=</span><span class="mf">0.1</span> <span class="c1"># 10% of data for test / verification</span>
+
+<span class="sd">&quot;&quot;&quot;j&#39;irais bien niquer ta mere&quot;&quot;&quot;</span>
+<span class="k">def</span> <span class="nf">load_wav_file</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
+  <span class="n">f</span> <span class="o">=</span> <span class="n">wave</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span>
+  <span class="c1"># print(&quot;loading %s&quot;%name)</span>
+  <span class="n">chunk</span> <span class="o">=</span> <span class="p">[]</span>
+  <span class="n">data0</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readframes</span><span class="p">(</span><span class="n">CHUNK</span><span class="p">)</span>
+  <span class="k">while</span> <span class="n">data0</span><span class="p">:</span>  <span class="c1"># f.getnframes()</span>
+    <span class="c1"># data=numpy.fromstring(data0, dtype=&#39;float32&#39;)</span>
+    <span class="c1"># data = numpy.fromstring(data0, dtype=&#39;uint16&#39;)</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">fromstring</span><span class="p">(</span><span class="n">data0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s1">&#39;uint8&#39;</span><span class="p">)</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="p">(</span><span class="n">data</span> <span class="o">+</span> <span class="mi">128</span><span class="p">)</span> <span class="o">/</span> <span class="mf">255.</span>  <span class="c1"># 0-1 for Better convergence</span>
+    <span class="c1"># chunks.append(data)</span>
+    <span class="n">chunk</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+    <span class="n">data0</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readframes</span><span class="p">(</span><span class="n">CHUNK</span><span class="p">)</span>
+  <span class="c1"># finally trim:</span>
+  <span class="n">chunk</span> <span class="o">=</span> <span class="n">chunk</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">CHUNK</span> <span class="o">*</span> <span class="mi">2</span><span class="p">]</span>  <span class="c1"># should be enough for now -&gt; cut</span>
+  <span class="n">chunk</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">CHUNK</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">chunk</span><span class="p">)))</span>  <span class="c1"># fill with padding 0&#39;s</span>
+  <span class="c1"># print(&quot;%s loaded&quot;%name)</span>
+  <span class="k">return</span> <span class="n">chunk</span>
+
+<span class="c1"># If you set dynamic_pad=True when calling tf.train.batch the returned batch will be automatically padded with 0s. Handy! A lower-level option is to use tf.PaddingFIFOQueue.</span>
+<span class="c1"># only apply to a subset of all images at one time</span>
+<span class="k">def</span> <span class="nf">wave_batch_generator</span><span class="p">(</span><span class="n">batch_size</span><span class="o">=</span><span class="mi">10</span><span class="p">):</span> <span class="c1">#speaker</span>
+  <span class="n">batch_waves</span> <span class="o">=</span> <span class="p">[]</span>
+  <span class="n">labels</span> <span class="o">=</span> <span class="p">[]</span>
+  <span class="c1"># input_width=CHUNK*6 # wow, big!!</span>
+  <span class="n">files</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+  <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+    <span class="n">shuffle</span><span class="p">(</span><span class="n">files</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;loaded batch of </span><span class="si">%d</span><span class="s2"> files&quot;</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">files</span><span class="p">))</span>
+    <span class="k">for</span> <span class="n">wav</span> <span class="ow">in</span> <span class="n">files</span><span class="p">:</span>
+      <span class="k">if</span> <span class="ow">not</span> <span class="n">wav</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;.wav&quot;</span><span class="p">):</span><span class="k">continue</span>
+      <span class="n">labels</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">dense_to_one_hot</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">wav</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">])))</span>
+      <span class="n">chunk</span> <span class="o">=</span> <span class="n">load_wav_file</span><span class="p">(</span><span class="n">path</span><span class="o">+</span><span class="n">wav</span><span class="p">)</span>
+      <span class="n">batch_waves</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">chunk</span><span class="p">)</span>
+      <span class="c1"># batch_waves.append(chunks[input_width])</span>
+      <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">batch_waves</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">batch_size</span><span class="p">:</span>
+        <span class="k">yield</span> <span class="n">batch_waves</span><span class="p">,</span> <span class="n">labels</span>
+        <span class="n">batch_waves</span> <span class="o">=</span> <span class="p">[]</span>  <span class="c1"># Reset for next batch</span>
+        <span class="n">labels</span> <span class="o">=</span> <span class="p">[]</span>
+
+
+<div class="viewcode-block" id="dense_to_one_hot"><a class="viewcode-back" href="../s.html#speech_data.dense_to_one_hot">[docs]</a><span class="k">def</span> <span class="nf">dense_to_one_hot</span><span class="p">(</span><span class="n">labels_dense</span><span class="p">,</span> <span class="n">num_classes</span><span class="o">=</span><span class="mi">10</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Convert class labels from scalars to one-hot vectors.&quot;&quot;&quot;</span>
+  <span class="k">return</span> <span class="n">numpy</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">num_classes</span><span class="p">)[</span><span class="n">labels_dense</span><span class="p">]</span></div>
+
+
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+  <li><a href="index.html">Code du module</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Recherche rapide</h3>
+    <form class="search" action="../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2019, Louis LAMALLE Boyan BECHEV.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.7</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.8</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

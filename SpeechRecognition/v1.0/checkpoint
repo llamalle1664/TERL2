@@ -1,0 +1,2 @@
+model_checkpoint_path: "/auto_home/llamalle/tensorflow_speech_recognition_demo/tflearn.lstm.model"
+all_model_checkpoint_paths: "/auto_home/llamalle/tensorflow_speech_recognition_demo/tflearn.lstm.model"

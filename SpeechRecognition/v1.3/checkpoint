@@ -1,0 +1,2 @@
+model_checkpoint_path: "/home/mp1664/S4/L2-INFO-S4-projet/SpeechRecognition/v1.3/tflearn.lstm.model"
+all_model_checkpoint_paths: "/home/mp1664/S4/L2-INFO-S4-projet/SpeechRecognition/v1.3/tflearn.lstm.model"
